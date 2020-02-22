@@ -1,0 +1,541 @@
+# Prediction model to distinguish advanced TIRADS thyroid nodules based on merge data
+rm(list = ls())
+library(caret)
+library(gbm)
+library(ROCR)
+library(dplyr)
+library(rsample)
+library(pROC)
+
+#======== Step1: data input ========#
+setwd("C:/users/Administrator/Desktop/data")
+merge <- read.csv("merge2.csv")       
+mergeclass <- read.csv("merge3.csv")  
+mergeclass$cohort <- as.factor(mergeclass$cohort) 
+
+
+#Data preprocessing
+
+
+#Data standardization and missing value
+Process <- preProcess(merge,method = "range")
+newdata1 <- predict(Process, merge)
+
+#======== Step2: Feature selection ========#
+zerovar <- nearZeroVar(newdata1)
+newdata2 <- newdata1[,-zerovar] 
+
+# Eliminating the independent variables that have strong correlation with other independent variables
+descrCorr <- cor(newdata2)
+highCorr <- findCorrelation(descrCorr,0.95)
+newdata3 <- newdata2[,-highCorr]          
+comboInfo <- findLinearCombos(newdata3)
+newdata3 <- newdata3[,-comboInfo$remove]  
+
+# Feature number is between 80 and 120
+
+subsets = seq(80,120,2)
+set.seed(123)
+ctrl= rfeControl(functions = rfFuncs, 
+                 method = "cv",verbose = FALSE, 
+                 returnResamp = "final")
+
+Profile = rfe(newdata3, mergeclass$cohort,sizes = subsets,rfeControl = ctrl)
+print(Profile) 
+plot(Profile)
+write.csv(Profile$results,"results1.csv")
+tezheng <- Profile$optVariables
+write.csv(tezheng,"tezheng104.csv",row.names = FALSE) 
+
+########104 features
+
+all_c <- c("age"
+           ,"Rothia_unclassified"
+           ,"PWY_5030"
+           ,"Peptostreptococcaceae_noname_unclassified"
+           ,"Streptococcus_mutans"
+           ,"GLUCUROCAT_PWY"
+           ,"candidate_division_TM7_single_cell_isolate_TM7c"
+           ,"Veillonella_atypica"
+           ,"PANTOSYN_PWY"
+           ,"Oxalobacter_formigenes"
+           ,"PWY_6595"
+           ,"Clostridium_sp_L2_50"
+           ,"Parabacteroides_merdae"
+           ,"Ruminococcus_sp_JC304"
+           ,"HISDEG_PWY"
+           ,"Clostridium_leptum"
+           ,"BMI"
+           ,"ALL_CHORISMATE_PWY"
+           ,"ALLANTOINDEG_PWY"
+           ,"Clostridium_symbiosum"
+           ,"Streptococcus_thermophilus"
+           ,"Bacteroides_caccae"
+           ,"Bifidobacterium_dentium"
+           ,"PWY_5384"
+           ,"PWY_4981"
+           ,"Streptococcus_mitis_oralis_pneumoniae"
+           ,"Citrobacter_unclassified"
+           ,"SP"
+           ,"Bacteroides_eggerthii"
+           ,"PWY_5100"
+           ,"Alistipes_indistinctus"
+           ,"Bacteroides_coprocola"
+           ,"Clostridiales_bacterium_1_7_47FAA"
+           ,"Streptococcus_anginosus"
+           ,"Parabacteroides_goldsteinii"
+           ,"Eubacterium_rectale"
+           ,"PWY_6168"
+           ,"SALVADEHYPOX_PWY"
+           ,"P185_PWY"
+           ,"COA_PWY"
+           ,"PWY_4242"
+           ,"ARGSYNBSUB_PWY"
+           ,"PWY_621"
+           ,"gender"
+           ,"Lachnospiraceae_bacterium_7_1_58FAA"
+           ,"Bacteroides_salyersiae"
+           ,"Streptococcus_gordonii"
+           ,"PWY_6606"
+           ,"NAGLIPASYN_PWY"
+           ,"Erysipelotrichaceae_bacterium_2_2_44A"
+           ,"Erysipelotrichaceae_bacterium_21_3"
+           ,"Ruminococcus_obeum"
+           ,"PWY_6305"
+           ,"PWY_5415"
+           ,"PWY_5973"
+           ,"Bacteroides_ovatus"
+           ,"P441_PWY"
+           ,"Streptococcus_vestibularis"
+           ,"PWY_5138"
+           ,"Lachnospiraceae_bacterium_5_1_63FAA"
+           ,"PWY_5676"
+           ,"HEMESYN2_PWY"
+           ,"HEME_BIOSYNTHESIS_II"
+           ,"PWY_6936"
+           ,"Oscillibacter_sp_KLE_1745"
+           ,"Odoribacter_unclassified"
+           ,"Bacteroides_thetaiotaomicron"
+           ,"TRNA_CHARGING_PWY"
+           ,"Butyricimonas_synergistica"
+           ,"PWY_7013"
+           ,"PP"
+           ,"ARG.POLYAMINE_SYN"
+           ,"Lachnospiraceae_bacterium_4_1_37FAA"
+           ,"Peptostreptococcus_unclassified"
+           ,"Gordonibacter_pamelaeae"
+           ,"PWY0_321"
+           ,"Erysipelotrichaceae_bacterium_6_1_45"
+           ,"PWY66_389"
+           ,"Bacteroides_vulgatus"
+           ,"Enterococcus_faecium"
+           ,"THISYN_PWY"
+           ,"Eubacterium_siraeum"
+           ,"PWY_7392"
+           ,"Bacteroides_xylanisolvens"
+           ,"Eubacterium_eligens"
+           ,"ANAGLYCOLYSIS_PWY"
+           ,"Bifidobacterium_adolescentis"
+           ,"Eubacterium_dolichum"
+           ,"Lactobacillus_ruminis"
+           ,"Dorea_formicigenerans"
+           ,"PWY_5971"
+           ,"PWY_6285"
+           ,"PRPP_PWY"
+           ,"Bifidobacterium_pseudocatenulatum"
+           ,"Faecalibacterium_prausnitzii"
+           ,"Bacteroides_dorei"
+           ,"Actinomyces_graevenitzii"
+           ,"Lachnospiraceae_bacterium_8_1_57FAA"
+           ,"P461_PWY"
+           ,"TEICHOICACID_PWY"
+           ,"PWY_5104"
+           ,"Coprobacillus_unclassified"
+           ,"Coprobacter_fastidiosus"
+           ,"PWY_7197"
+)
+
+newdata4<- newdata3[,which(names(newdata3)%in%all_c)]
+
+#Reorganizing data sets to integrate features and Tags
+mergeclass <- read.csv("merge3.csv") 
+data_all <- cbind(newdata4,mergeclass)
+
+data_all$cohort <- as.logical(data_all$cohort)
+set.seed(123)
+n = dim(data_all)[1]
+index = sample(n,round((0.7)*n))   # 7:3 partition
+train = data_all[index,]           # Training dataset
+test =  data_all[-index,]          # Test dataset
+
+
+# GBM filtering features (set parameters randomly)
+set.seed(123)
+model <- gbm(cohort ~. , data = train,
+             shrinkage = 0.05,   # learning rate
+             distribution = "bernoulli",  # sample distribution
+             cv.folds = 10,   # ten fold cross validation
+             n.trees = 500, # number of tree
+             verbose = F,    # do not show run results
+             n.minobsinnode = 10  # minimum number of tree terminal nodes
+)
+
+# Determining the best number of iterations
+best.iter <- gbm.perf(model,method = "cv")
+print(best.iter)
+
+# Observing the importance of each explanatory variable and select 53 variables whose cumulative sum is more than 85
+b <- summary(model, best.iter)
+write.csv(b,"gbm_feature.csv",row.names = FALSE)
+
+
+########### 54 features and dependent variable
+
+all_B <- c("age"
+           ,"Bacteroides_eggerthii"
+           ,"Peptostreptococcaceae_noname_unclassified"
+           ,"PWY_6285"
+           ,"PWY_6936"
+           ,"gender"
+           ,"PWY_6595"
+           ,"HISDEG_PWY"
+           ,"PWY_5676"
+           ,"PWY_7197"
+           ,"PWY_6606"
+           ,"GLUCUROCAT_PWY"
+           ,"TRNA_CHARGING_PWY"
+           ,"BMI"
+           ,"PWY_5030"
+           ,"HEMESYN2_PWY"
+           ,"SP"
+           ,"candidate_division_TM7_single_cell_isolate_TM7c"
+           ,"PWY0_321"
+           ,"Erysipelotrichaceae_bacterium_6_1_45"
+           ,"P441_PWY"
+           ,"Streptococcus_anginosus"
+           ,"Alistipes_indistinctus"
+           ,"PWY_4242"
+           ,"Bifidobacterium_dentium"
+           ,"P461_PWY"
+           ,"ARGSYNBSUB_PWY"
+           ,"Clostridium_leptum"
+           ,"PWY_4981"
+           ,"PWY_621"
+           ,"COA_PWY"
+           ,"PWY_5104"
+           ,"Ruminococcus_obeum"
+           ,"Bacteroides_ovatus"
+           ,"Eubacterium_eligens"
+           ,"Erysipelotrichaceae_bacterium_2_2_44A"
+           ,"PANTOSYN_PWY"
+           ,"Odoribacter_unclassified"
+           ,"Streptococcus_vestibularis"
+           ,"PWY_6305"
+           ,"Eubacterium_rectale"
+           ,"Oxalobacter_formigenes"
+           ,"Bacteroides_dorei"
+           ,"Rothia_unclassified"
+           ,"Streptococcus_mutans"
+           ,"Streptococcus_mitis_oralis_pneumoniae"
+           ,"Lachnospiraceae_bacterium_7_1_58FAA"
+           ,"Bifidobacterium_pseudocatenulatum"
+           ,"Oscillibacter_sp_KLE_1745"
+           ,"SALVADEHYPOX_PWY"
+           ,"PWY_7013"
+           ,"PWY_5384"
+           ,"Bacteroides_vulgatus"
+           ,"cohort"
+)
+newdata5 <- data_all[,which(names(data_all)%in%all_B)]
+write.csv(newdata5,"newdata5.csv",row.names = FALSE)
+# newdata5 <- data_all
+#======== Step3: Dividing the final feature data into training set and test set according to 7:3 ========#
+set.seed(12)
+n = dim(newdata5)[1]
+index = sample(n,round((0.7)*n))   
+train = newdata5[index,]         
+test =  newdata5[-index,]      
+
+write.csv(train,"train.csv")
+write.csv(test,"test.csv")
+#======== Step1: Parameter adjustment ========#
+# Training the optimal parameter
+hyper_grid_1 <- expand.grid(
+  shrinkage = c(0.1,0.2,0.3), 
+  interaction.depth = c(1,2,3), 
+  n.minobsinnode = c(1,2,3), 
+  bag.fraction = c(0.6,0.7,0.8), 
+  optimal_trees = 0,               
+  min_Error = 0                     
+)
+
+nrow(hyper_grid_1)
+
+for(i in 1:nrow(hyper_grid_1)) {
+  set.seed(123)
+  # train model
+  gbm.tune <- gbm(
+    formula = cohort ~ .,
+    distribution = "bernoulli",
+    data = train,
+    n.trees = 500,
+    interaction.depth = hyper_grid_1$interaction.depth[i],
+    shrinkage = hyper_grid_1$shrinkage[i],
+    n.minobsinnode = hyper_grid_1$n.minobsinnode[i],
+    bag.fraction = hyper_grid_1$bag.fraction[i],
+    train.fraction = 0.7, 
+    n.cores = NULL, 
+    verbose = FALSE
+  )
+  
+  hyper_grid_1$optimal_trees[i] <- which.min(gbm.tune$valid.error)
+  hyper_grid_1$min_Error[i] <- sqrt(min(gbm.tune$valid.error))
+}
+
+hyper_grid_1 %>% dplyr::arrange(min_Error) %>% head(5)
+
+#======== Step2: Final model and evaluation ========#
+set.seed(123)
+system.time(
+  # training GBM model
+  gbm.fit.final <- gbm(
+    formula = cohort ~ .,
+    distribution = "bernoulli",
+    data = train,
+    n.trees = 300,
+    shrinkage = 0.1,
+    interaction.depth = 2,
+    n.minobsinnode = 1,
+    bag.fraction = 0.8, 
+    train.fraction = 1, 
+    cv.folds = 10, 
+    n.cores = NULL, 
+    verbose = FALSE
+  )
+)
+
+sqrt(min(gbm.fit.final$cv.error))
+
+par(mar = c(5, 8, 1, 1))
+c00 <-summary(
+  gbm.fit.final, 
+  cBars = 10, 
+  plotit = TRUE, 
+  method = relative.influence,
+  las = 2
+)
+write.csv(c00,"relative influence.csv")
+
+# ROC and AUC
+best.iter <- gbm.perf(gbm.fit.final,method = "cv")
+f.predict <- predict(gbm.fit.final,test,best.iter)
+pred <- prediction(f.predict,test$cohort)
+
+
+perf <- performance(pred,'tpr',"fpr") 
+auc <- performance(pred,'auc')
+auc <- unlist(slot(auc,"y.values")) # auc value
+auc
+rocCurve <- roc(response = test$cohort, predictor = f.predict)
+qujian<-ci.auc(rocCurve)
+# ROC curve
+plot(perf,
+     xlim = c(0,1), ylim = c(0,1), col = 'red',
+     main = paste("ROC curve(","AUC = ",auc,")"),
+     lwd = 2, cex.main = 1.3, cex.lab = 1.2, cex.axis =1.2, font =1.2)
+abline(0,1)
+write.csv(perf@x.values[[1]],"perf1.csv")
+write.csv(perf@y.values[[1]],"perf2.csv")
+write.csv(perf@alpha.values[[1]],"perf3.csv")
+# ACC
+f.predict1 <-ifelse(f.predict>=0,1,0)
+table(f.predict1,test$cohort)
+mean(f.predict1 == test$cohort)
+write.csv(test,"test373.csv")
+sigmoid = function(x,a=1){1/(1+exp(-a*x))}
+f.predict=sigmoid(f.predict)
+write.csv(f.predict,"f.predict_test373.csv")
+
+
+#################step 3: Verification##############
+yanzheng <- read.csv("yanzheng.csv")
+Process <- preProcess(yanzheng,method = "range")
+yanzheng <- predict(Process, yanzheng)
+set.seed(123)
+system.time(
+  gbm.fit.final <- gbm(
+    formula = cohort ~ .,
+    distribution = "bernoulli",
+    data = train,
+    n.trees = 300,
+    shrinkage = 0.1,
+    interaction.depth = 2,
+    n.minobsinnode = 1,
+    bag.fraction = 0.8, 
+    train.fraction = 1, 
+    cv.folds = 10, 
+    n.cores = NULL, 
+    verbose = FALSE
+  )
+)
+######
+
+sqrt(min(gbm.fit.final$cv.error))
+
+par(mar = c(5, 8, 1, 1))
+c001 <-summary(
+  gbm.fit.final, # gbm object
+  cBars = 10, # the number of bars to draw. length(object$var.names)
+  plotit = TRUE, # an indicator as to whether the plot is generated.defult TRUE.
+  method = relative.influence, # The function used to compute the relative influence. 
+  las = 2
+)
+write.csv(c001,"relative influence.csv")
+# ROC and AUC
+#============= Evaluation effect after training GBM model =====================#
+best.iter <- gbm.perf(gbm.fit.final,method = "cv")
+f.predict_YANZHENG <- predict(gbm.fit.final,yanzheng,best.iter)
+pred_YANGZHENG <- prediction(f.predict_YANZHENG,yanzheng$cohort)
+perf_YANGZHENG <- performance(pred_YANGZHENG,'tpr',"fpr")
+# plot(perf,col = 'blue', lty =2)
+auc <- performance(pred_YANGZHENG,'auc')
+auc <- unlist(slot(auc,"y.values"))
+rocCurve <- roc(response = yanzheng$cohort, predictor = f.predict_YANZHENG)
+qujian1<-ci.auc(rocCurve)
+# ROC curve
+plot(perf,
+     xlim = c(0,1), ylim = c(0,1), col = 'red',
+     main = paste("ROC curve(","AUC = ",auc,")"),
+     lwd = 2, cex.main = 1.3, cex.lab = 1.2, cex.axis =1.2, font =1.2)
+abline(0,1)
+write.csv(perf_YANGZHENG@x.values[[1]],"perf11.csv")
+write.csv(perf_YANGZHENG@y.values[[1]],"perf21.csv")
+write.csv(perf_YANGZHENG@alpha.values[[1]],"perf31.csv")
+# ACC
+f.predict_YANG <-ifelse(f.predict_YANZHENG>=0,1,0)
+table(f.predict_YANG,yanzheng$cohort)
+mean(f.predict_YANG == yanzheng$cohort)
+sigmoid = function(x,a=1){1/(1+exp(-a*x))}
+f.predict_YANGZHENG1=sigmoid(f.predict_YANZHENG)
+write.csv(f.predict_YANGZHENG1,"f.predict_YANGZHENG1.csv")
+
+#======== Step4 : Generalization ability of model ===========#
+finaldata <- read.csv("yanzheng.csv")
+Process <- preProcess(finaldata,method = "range")
+finaldata <- predict(Process, finaldata)
+yanzhenglable <- read.csv("yanzhenglable.csv")
+finaldata <- cbind(finaldata,yanzhenglable)
+
+printauc_10times <- function(finaldata,train){
+  final_auc <- array();              
+  final_predict <- array();          
+  final_roc_x <- array();         
+  final_roc_y <- array();            
+  final_roc_alpha <- array();       
+  auc_cofindence_lower <- array();     
+  auc_cofindence_upper <- array();     
+  for(i in 1:100){
+    set.seed(i)
+    n = dim(finaldata)[1]
+    index = sample(n,round((0.68)*n)) 
+    final_test = finaldata[index,]
+    print_paste <- paste(i,"Validation set.csv")    
+    write.csv(final_test,print_paste)   
+    
+    #============= gbm model =====================#
+    print(paste("Running the",i,"time"))  
+    
+    set.seed(123)
+    gbm.fit.final <- gbm(
+      formula = cohort ~ .,
+      distribution = "bernoulli",    
+      data = train,
+      n.trees = 50,      
+      shrinkage = 0.1,
+      interaction.depth = 2,
+      n.minobsinnode = 1,
+      bag.fraction = 0.8,         
+      train.fraction = 1,         
+      cv.folds = 10,                 
+      n.cores = NULL,               
+      verbose = FALSE             
+    )
+    
+    #============= Evaluation effect after training GBM model=====================#
+    best.iter <- gbm.perf(gbm.fit.final,method = "cv")
+    f.predict <- predict(gbm.fit.final,final_test,best.iter)
+    pred <- prediction(f.predict,final_test$cohort)
+    perf <- performance(pred,'tpr',"fpr")
+    auc <- performance(pred,'auc')
+    auc <- unlist(slot(auc,"y.values"))   # auc
+    rocCurve <- roc(response = final_test$cohort, predictor = f.predict)
+    auc_cofindence <- ci.auc(rocCurve) 
+    
+    
+    final_auc <- append(final_auc,auc)
+    final_predict <- append(final_predict,f.predict)
+    final_roc_x <- append(final_roc_x,perf@x.values)
+    final_roc_y <- append(final_roc_y,perf@y.values)
+    final_roc_alpha <- append(final_roc_alpha,perf@alpha.values)
+    auc_cofindence_lower <- append(auc_cofindence_lower,auc_cofindence[1])
+    auc_cofindence_upper <- append(auc_cofindence_upper,auc_cofindence[3])
+  }
+  final_auc_pre <- list(final_auc = final_auc,final_predict = final_predict,final_roc_x = final_roc_x, final_roc_y = final_roc_y, final_roc_alpha = final_roc_alpha,auc_cofindence_lower = auc_cofindence_lower, auc_cofindence_upper = auc_cofindence_upper)
+  return(final_auc_pre)
+}
+
+final_auc_pre <- printauc_10times(finaldata,train)  
+
+# Output the final 100 AUCs
+final_auc <- final_auc_pre$final_auc
+final_auc <- final_auc[2:length(final_auc)]  
+final_auc 
+write.csv(final_auc,"final 100 auc.csv")
+
+# Output the final 10 * 200 f.predicts
+final_pre <- final_auc_pre$final_predict
+final_pre <- final_pre[2:length(final_pre)]
+final_pre_matirx <- matrix(final_pre, byrow = T,nrow = 10)  
+final_pre_matirx <- as.data.frame(final_pre_matirx)
+write.csv(final_pre_matirx,"2000¸öpredict.csv")
+
+# Output the final x.values from perf
+final_roc_x <- final_auc_pre$final_roc_x
+xlsxflie=paste(1:10,sep="")
+for(i in 1:10){
+  c=paste("rocx",xlsxflie[i],sep="")
+  output <- paste(c,".txt",sep = "")
+  sink(output)
+  print(final_roc_x[[i+1]])
+  sink()
+}
+
+
+# Output the final y.values from perf
+final_roc_y <- final_auc_pre$final_roc_y
+xlsxflie=paste(1:10,sep="")
+for(i in 1:10){
+  c=paste("rocy",xlsxflie[i],sep="")
+  output <- paste(c,".txt",sep = "")
+  sink(output)
+  print(final_roc_y[[i+1]])
+  sink()
+}
+
+# Output the final  alpha.values from perf
+final_roc_alpha <- final_auc_pre$final_roc_alpha
+xlsxflie=paste(1:10,sep="")
+for(i in 1:10){
+  c=paste("rocalpha",xlsxflie[i],sep="")
+  output <- paste(c,".txt",sep = "")
+  sink(output)
+  print(final_roc_alpha[[i+1]])
+  sink()
+}
+
+
+
+
+
+
+
